@@ -1,3 +1,4 @@
+import { getApiKey } from "./api/elevenlabs-request.js";
 import { sendAudio } from "../../libs/audio-transfer.js";
 import TTSConnectorInterface from "../../tts-connector-interface.js";
 import { ELEVENLABS_CONSTANTS, ELEVENLABS_FLAGS } from "./constants.js";
@@ -97,7 +98,7 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
         Mp3Utils.init();
 
         await this.initializeAvailableVoices();
-        await this.initializeUserdata();
+        // Subscription data is unused and requires account permissions unrelated to speech.
 
         await this.initializeModels();
 
@@ -177,8 +178,7 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
     }
 
     hasApiKey(warn) {
-        const hasKey = (game.settings.get(this.mainModule.id, ELEVENLABS_CONSTANTS.APIKEY)?.length > 1)
-            || (game.settings.get(this.mainModule.id, ELEVENLABS_CONSTANTS.MASTERAPIKEY)?.length > 1);
+        const hasKey = !!getApiKey(this.mainSettingsId);
         if (!hasKey && warn) {
             this.logger.warn(warn);
         }

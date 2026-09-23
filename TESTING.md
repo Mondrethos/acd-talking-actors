@@ -11,7 +11,9 @@ npm run test:socket
 The unit suite covers large, out-of-order, duplicate, malformed, and expired audio
 transfers; multiline commands; all four journal selection-menu actions; journal
 inline tags; missing narrators; chat visibility; voice-name overrides; API errors;
-and audio URL cleanup. Foundry globals are mocked.
+and audio URL cleanup. API tests also cover restricted-key startup without the
+unused subscription lookup, invalid credentials, detailed API errors, untouched
+successful audio responses, and client/shared key precedence. Foundry globals are mocked.
 
 The socket integration check opens a local server and two clients, relays a
 2,500,017-byte recording under a 1 MB message limit, and checks every received byte

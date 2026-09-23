@@ -1,6 +1,6 @@
 {
   "id": "acd-talking-actors",
-  "title": "Talking Actors",
+  "title": "Talking Actors (Mondrethos Fork)",
   "version": "#{VERSION}#",
   "compatibility": {
     "minimum": "13",
@@ -30,14 +30,22 @@
     "scripts/libs/context-menu.min.js"
   ],
   "socket": true,
-  "description": "Enhances your tabletop experience by enabling actors and narrators to 'talk', with support for text-to-speech (TTS) integrationAn Elevenlabs subscription is required for the API Key.",
+  "description": "Mondrethos' maintained fork of Talking Actors by Acd-Jake. Adds customizable ElevenLabs voices for actors and narrators, with fixes for long audio delivery and journal read-aloud controls. An ElevenLabs API key is required to generate speech.",
   "authors": [
     {
-      "name": "Acd-Jake",
+      "name": "Mondrethos",
+      "url": "https://github.com/Mondrethos",
+      "flags": {
+        "github": "Mondrethos"
+      }
+    },
+    {
+      "name": "Acd-Jake (Original Author)",
       "discord": "Acd-Jake",
       "flags": {
         "github": "acd-jake"
-      }
+      },
+      "url": "https://github.com/acd-jake/acd-talking-actors"
     }
   ],
   "url": "#{URL}#",

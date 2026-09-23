@@ -1,15 +1,18 @@
 import { ELEVENLABS_CONSTANTS } from "../constants.js";
 
+// A client key takes precedence; use the shared key only when the client field is empty.
+export function getApiKey(namespace) {
+    const clientKey = game.settings.get(namespace, ELEVENLABS_CONSTANTS.APIKEY)?.trim();
+    return clientKey || game.settings.get(namespace, ELEVENLABS_CONSTANTS.MASTERAPIKEY)?.trim() || "";
+}
+
 export class ElevenlabsRequest {
     api_key;
     api_url = 'https://api.elevenlabs.io/v1/';
 
     constructor(connector) {
         this.logger = connector.logger;
-        this.api_key = game.settings.get(connector.mainSettingsId, ELEVENLABS_CONSTANTS.APIKEY);
-        if (!this.api_key) {
-            this.api_key = game.settings.get(connector.mainSettingsId, ELEVENLABS_CONSTANTS.MASTERAPIKEY);
-        }
+        this.api_key = getApiKey(connector.mainSettingsId);
     }
 
     execute() {
@@ -28,7 +31,7 @@ export class ElevenlabsRequest {
             }
         });
 
-        this.checkResponseStatus(response);
+        await this.checkResponseStatus(response);
     
         return await response.text();
     };
@@ -41,7 +44,7 @@ export class ElevenlabsRequest {
             }
         });
 
-        this.checkResponseStatus(response);
+        await this.checkResponseStatus(response);
         
         return response;
     }
@@ -57,15 +60,32 @@ export class ElevenlabsRequest {
             body: body
         });
 
-        this.checkResponseStatus(response);
+        await this.checkResponseStatus(response);
 
         return response;
     }
 
-    checkResponseStatus(response) {
-        if (!response.ok) {
-            throw new Error(`ElevenLabs request failed: HTTP ${response.status} ${response.statusText || ""}`.trim());
+    async checkResponseStatus(response) {
+        if (response.ok) return true;
+
+        let detail;
+        try {
+            detail = (await response.json()).detail;
+        } catch {
+            // Proxies and network gateways may return HTML or an empty body.
         }
-        return true;
+        const code = typeof detail?.code === "string" ? detail.code
+            : typeof detail?.status === "string" ? detail.status : "";
+        const message = typeof detail === "string" ? detail
+            : typeof detail?.message === "string" ? detail.message : "";
+        let description = `ElevenLabs request failed: HTTP ${response.status} ${response.statusText || ""}`.trim();
+        if (code) description += ` (${code})`;
+        if (message) description += `: ${message}`;
+        // Never echo the configured credential if an upstream error includes it.
+        if (this.api_key) description = description.split(this.api_key).join("[redacted]");
+        const error = new Error(description.slice(0, 1000));
+        error.status = response.status;
+        error.code = code;
+        throw error;
     }
 }

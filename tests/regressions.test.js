@@ -153,10 +153,10 @@ test('journal menu captures selection before menu focus clears it', async () => 
     await new Promise(resolve => setTimeout(resolve, 5));
 });
 
-test('API errors report the HTTP status instead of an undefined logger error', () => {
+test('API errors report the HTTP status instead of an undefined logger error', async () => {
     const request = new ElevenlabsRequest({ mainSettingsId: 'test', logger });
-    assert.throws(() => request.checkResponseStatus({ ok: false, status: 401, statusText: 'Unauthorized' }), /HTTP 401 Unauthorized/);
-    assert.equal(request.checkResponseStatus({ ok: true }), true);
+    await assert.rejects(request.checkResponseStatus(new Response('', { status: 401, statusText: 'Unauthorized' })), /HTTP 401 Unauthorized/);
+    assert.equal(await request.checkResponseStatus({ ok: true }), true);
 });
 
 test('all four pictured journal menu controls retain text, choose the right voice, and honor chat visibility', async () => {
