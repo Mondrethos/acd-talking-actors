@@ -24,10 +24,11 @@ export class SpeakerResolver {
     }
 
     static findSpeakerActorById(actorId) {
-        let speakerActor = game.actors.find((a) => a._id == actorId);
+        const id = actorId.trim().replace(/^Actor\./, "");
+        let speakerActor = game.actors.find((a) => a._id == id);
 
         if (!speakerActor) {
-            speakerActor = game.actors.find((a) => a.name == actorId);
+            speakerActor = game.actors.find((a) => a.name == actorId.trim());
         }
         return speakerActor;
     }
@@ -62,7 +63,7 @@ export class SpeakerResolver {
     static tryGetSpeakerActorForNarratingActor() {
         const narratingActorId = game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.NARRATORACTOR);
         if (narratingActorId) {
-            return game.actors.find((a) => a._id == narratingActorId);
+            return this.findSpeakerActorById(narratingActorId);
         }
         return null;
     }

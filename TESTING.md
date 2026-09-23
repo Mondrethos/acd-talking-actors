@@ -11,7 +11,9 @@ npm run test:socket
 The unit suite covers large, out-of-order, duplicate, malformed, and expired audio
 transfers; multiline commands; all four journal selection-menu actions; journal
 inline tags; missing narrators; chat visibility; voice-name overrides; API errors;
-and audio URL cleanup. API tests also cover restricted-key startup without the
+and audio URL cleanup. Journal DOM tests exercise real selected ranges and all four
+menu clicks, including a missing narrator. Speech uses plain text while chat keeps
+journal formatting. Narrator lookup accepts actor ID, UUID, or exact name. API tests also cover restricted-key startup without the
 unused subscription lookup, invalid credentials, detailed API errors, untouched
 successful audio responses, and client/shared key precedence. Foundry globals are mocked.
 
