@@ -11,12 +11,12 @@
       "lang": "en",
       "name": "English",
       "path": "language/en.json"
-  },
-  {
-    "lang": "de",
-    "name": "Deutsch",
-    "path": "language/de.json"
-  }
+    },
+    {
+      "lang": "de",
+      "name": "Deutsch",
+      "path": "language/de.json"
+    }
   ],
   "styles": [
     "styles/context-menu.min.css",
@@ -43,5 +43,5 @@
   "url": "#{URL}#",
   "download": "#{DOWNLOAD}#",
   "manifest": "#{MANIFEST}#",
-  "bugs": "https://github.com/acd-jake/acd-talking-actors/issues"
+  "bugs": "https://github.com/Mondrethos/acd-talking-actors/issues"
 }

@@ -1,5 +1,7 @@
 # acd-talking-actors
 
+This fork includes fixes for long audio delivery and journal read-aloud controls.
+
 ![GitHub Release](https://img.shields.io/github/v/release/acd-jake/acd-talking-actors?display_name=tag&style=for-the-badge&label=Latest%20Release)
 
 ![Latest Release Download Count](https://img.shields.io/github/downloads/acd-jake/acd-talking-actors/latest/module.zip?color=2b82fc&label=LATEST%20VERSION%20DOWNLOADS&style=for-the-badge)
@@ -29,10 +31,18 @@ acd-talking-actors is a FoundryVTT module that brings immersive, AI-powered voic
 
 ## Installation
 
-1. Install directly through Foundry's module manager or manually using this manifest URL: https://github.com/acd-jake/acd-talking-actors/releases/latest/download/module.json
+1. In Foundry's **Add-on Modules → Install Module**, paste this URL into **Manifest URL**:
+
+   ```text
+   https://github.com/Mondrethos/acd-talking-actors/releases/latest/download/module.json
+   ```
+
+   Use the release manifest above. GitHub `blob` links are HTML pages, and the source
+   `module.json` contains placeholders that are filled when a release is packaged.
 2. Optionally install a tts connector of your choice ( a connector for Elevenlabs is part of the package).
 3. Enable both `acd-talking-actors` and your optional tts connector in your FoundryVTT game settings.
 4. When using elevenlabs as the tts connector, configure your ElevenLabs API key in the module settings.
+5. After updating, have the GM and all players reload Foundry so everyone uses the new audio transport.
 
 
 ## Credits
