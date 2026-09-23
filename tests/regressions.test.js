@@ -1,3 +1,5 @@
+import { JSDOM } from "jsdom";
+globalThis.DOMParser = new JSDOM().window.DOMParser;
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { AudioReceiver, AUDIO_CHUNK_BYTES, sendAudio } from '../scripts/libs/audio-transfer.js';
@@ -102,6 +104,7 @@ test('explicit actor and normal narrator route correctly', async () => {
 
 test('missing narrator does not throw and silent narration does not post', async () => {
     let posted = 0;
+    ui.notifications = { warn() {} };
     globalThis.ChatMessage = { create: async () => { posted++; } };
     settings.set('postSpokenTextToChat', true);
     assert.equal(processor.processChatMessage({}, '/narrate-s hello', {}), false);
@@ -231,4 +234,22 @@ test('voice name overrides return the ElevenLabs voice_id', async () => {
     connector.availableVoices = [{ name: 'Dave', voice_id: 'voice-dave' }];
     assert.equal(connector.getVoiceId('Dave'), 'voice-dave');
     assert.equal(connector.getVoiceId('Missing'), null);
+});
+
+test('narrator can be configured by actor ID, UUID, or exact name', async () => {
+    const { SpeakerResolver } = await import('../scripts/speaker-resolver.js');
+    const actor = { _id: 'narrator-id', name: 'The Narrator' };
+    game.actors = { find: predicate => [actor].find(predicate) };
+    for (const value of ['narrator-id', 'Actor.narrator-id', 'The Narrator', '  Actor.narrator-id  ']) {
+        settings.set('narrating-actor', value);
+        assert.equal(SpeakerResolver.tryGetSpeakerActorForNarratingActor(), actor);
+    }
+    settings.set('narrating-actor', 'missing-actor');
+    assert.equal(SpeakerResolver.tryGetSpeakerActorForNarratingActor(), undefined);
+});
+
+test('journal speech strips markup and decodes entities with paragraph breaks', async () => {
+    const { speechText } = await import('../scripts/libs/functions.js');
+    assert.equal(speechText('<p>The <strong>creature</strong> &amp; party.</p><p>Next&nbsp;line.<br>Last.</p>'), 'The creature & party.\nNext line.\nLast.');
+    assert.equal(speechText('Plain text\nwith two lines'), 'Plain text\nwith two lines');
 });

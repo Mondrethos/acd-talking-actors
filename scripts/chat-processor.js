@@ -1,5 +1,5 @@
 import TalkingActorsConstants from "./constants.js";
-import { localize } from "./libs/functions.js";
+import { localize, speechText } from "./libs/functions.js";
 import { SpeakerResolver } from "./speaker-resolver.js";
 
 /**
@@ -161,11 +161,16 @@ export class ChatProcessor {
             }
         }
     
+        if (!voice_id) {
+            ui.notifications.warn(localize(speakerActor
+                ? "acd.ta.errors.noVoiceConfigured" : "acd.ta.errors.noNarratorConfigured"));
+        }
+
         this.logger.debug(`Voice ID: ${voice_id}`);
 
         this.processAndPostMessage(voice_id, speakerActor, postToChat, chatData, messageText, inCharacter, settings, chatlog).catch(error => {
             this.logger.error("Speech failed:", error);
-            ui.notifications.error("Talking Actors: speech failed. Check the console for details.");
+            ui.notifications.error(`Talking Actors: ${error.message || "Speech failed. Check the console for details."}`);
         });
 
         return false; //suppress normal chat message posting
@@ -179,7 +184,7 @@ export class ChatProcessor {
                 : Promise.resolve(null);
             const [chatMessage, itemId] = await Promise.all([
                 chatMessagePromise,
-                this.ttsConnector.textToSpeech(voice_id, speakerActor, messageText, settings)
+                this.ttsConnector.textToSpeech(voice_id, speakerActor, speechText(messageText), settings)
             ]);
             if (chatMessage && itemId) {
                 await this.updateChatMessageFlavor(itemId, chatMessage, { showPlay: true });

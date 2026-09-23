@@ -96,3 +96,27 @@ test('invalid credentials still report errors for required startup requests', as
     assert.ok(errors.every(args => args[1].code === 'invalid_api_key'));
     settings.clear();
 });
+
+test('speech reports missing keys and unavailable voices instead of returning silently', async () => {
+    game.i18n = { localize: key => key };
+    const connector = new Connector({ id: 'test' }, logger);
+    settings.clear();
+    await assert.rejects(connector.textToSpeech('voice-test', null, 'Hello'), /noApiKey/);
+    settings.set('xi-api-key', 'restricted-test-key');
+    await assert.rejects(connector.textToSpeech('missing-voice', null, 'Hello'), /voiceUnavailable/);
+    assert.equal(connector._speaking, false);
+    settings.clear();
+});
+
+test('speech API failures propagate to the caller with their actual cause', async t => {
+    settings.set('xi-api-key', 'restricted-test-key');
+    const connector = new Connector({ id: 'test' }, logger);
+    connector.logger = logger;
+    connector.availableVoices = [{ voice_id: 'voice-test' }];
+    t.mock.method(connector, 'retrieveModelId', () => 'model-test');
+    t.mock.method(connector, 'retrieveLanguageId', () => 'en');
+    t.mock.method(globalThis, 'fetch', async () => Response.json({ detail: { code: 'insufficient_permissions', message: 'This key cannot generate speech.' } }, { status: 403 }));
+    await assert.rejects(connector.textToSpeech('voice-test', null, 'Hello'), /insufficient_permissions.*cannot generate speech/);
+    assert.equal(connector._speaking, false);
+    settings.clear();
+});

@@ -1,3 +1,4 @@
+import { localize } from "../../libs/functions.js";
 import { getApiKey } from "./api/elevenlabs-request.js";
 import { sendAudio } from "../../libs/audio-transfer.js";
 import TTSConnectorInterface from "../../tts-connector-interface.js";
@@ -240,8 +241,8 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
             return null;
         }
         
-        if (!this.hasApiKey("API key not set. Cannot perform text-to-speech.")) {
-            return null;
+        if (!this.hasApiKey()) {
+            throw new Error(localize("acd.ta.errors.noApiKey"));
         }
 
         // Convert text to speech using the elevenlabs API
@@ -250,9 +251,8 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
 
         // check if voiceId is valid
         if (voiceId == null || !this.availableVoices.find(v => v.voice_id === voiceId)) {
-            this.logger.error("Invalid voice ID:", voiceId);
             this._speaking = false;
-            return null;
+            throw new Error(localize("acd.ta.errors.voiceUnavailable"));
         }
 
         const modelId = this.retrieveModelId(actor);
@@ -266,9 +266,8 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
                 throw new Error("Invalid stream container received from TextToSpeechRequest.");
             }
         } catch (error) {
-            this.logger.error("Failed to fetch TTS stream:", error);
             this._speaking = false;
-            return null;
+            throw error;
         }
 
         if (response.status !== 200) {
