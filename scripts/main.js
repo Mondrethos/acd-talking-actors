@@ -1,4 +1,5 @@
 import { JournalNarration } from "./journal-narration.js";
+import { SpeechStatus } from "./speech-status.js";
 import { AudioReceiver } from "./libs/audio-transfer.js";
 /**
  * Entry point class for the acd-talking-actors FoundryVTT module.
@@ -110,7 +111,9 @@ class ACDTalkingActors {
 
         this.ttsConnector.init();
 
-        this.chatProcessor = new ChatProcessor(this.ttsConnector, this.logger);
+        this.speechStatus = new SpeechStatus(this.logger);
+        this.speechStatus.registerHooks();
+        this.chatProcessor = new ChatProcessor(this.ttsConnector, this.logger, this.speechStatus);
 
         //add generic enrichers to TextEditor
         this.registerTextEditorEnrichers();

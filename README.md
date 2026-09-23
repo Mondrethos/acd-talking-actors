@@ -19,6 +19,7 @@ acd-talking-actors is a FoundryVTT module that brings immersive, AI-powered voic
 - Optional integration with [Yendors Scene Actors](https://foundryvtt.com/packages/yendors-scene-actors) and [Conversation Hud](https://foundryvtt.com/packages/conversation-hud)
 - A **Post to chat & narrate** button beneath journal read-aloud boxes: one click uses the journal's existing Send to Chat action and speaks the passage with the narrator voice
 - Read-aloud support for selected journal text and inline tags, with flexible voice selection
+- A quiet speech-status line in chat shows preparation stages and elapsed waiting time
 - Token HUD button for entering and reading aloud custom text
 - Option to suppress posting spoken text to chat
 - API for third-party module integration
@@ -62,6 +63,18 @@ The journal's native sharing action determines what appears in chat. Narration
 reads only the chosen passage and omits unrevealed secret/hidden elements. Buttons
 are unavailable inside the journal editor. Talking Actors leaves the native chat
 message unchanged, including its existing controls.
+
+## Speech status
+
+While narration is being prepared, a thin animated line below its chat message
+shows **Preparing speech**, **Loading audio**, or **Starting speech**, with the
+elapsed wait in seconds. It clears when playback starts on the requesting client.
+Everyone who can see the message can see its status. Ember's original card remains
+intact, and narration without a chat message stays silent in chat.
+
+The elapsed time counts up; it is not a countdown or a completion percentage.
+The ElevenLabs speech endpoint does not supply a remaining-time estimate. If
+generation fails, the waiting indicator briefly shows **Speech failed**.
 
 
 ## Credits

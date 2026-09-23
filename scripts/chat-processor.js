@@ -40,9 +40,10 @@ export class ChatProcessor {
     static narrateSilentCommand = "narrate-s";
 
     /* constructor */
-    constructor(ttsConnector, logger) {
+    constructor(ttsConnector, logger, speechStatus = null) {
         this.ttsConnector = ttsConnector;
         this.logger = logger;
+        this.speechStatus = speechStatus;
     }
 
     /* main method */
@@ -185,22 +186,56 @@ export class ChatProcessor {
         const settings = this.ttsConnector.getVoiceSettingsFromActor(actor);
         // Validate the narrator before posting. The journal owns the complete chat
         // message, including its flavor/date, styles, flags, and speaker.
-        await shareToChat();
-        return this.ttsConnector.textToSpeech(voiceId, actor, speechText(content), settings);
+        const status = this.startSpeechStatus(content, { capture: true });
+        try {
+            await shareToChat();
+        } catch (error) {
+            status?.finish('failed');
+            throw error;
+        }
+        return this.speak(voiceId, actor, content, settings, status);
     }
 
     /* helper methods */
+    startSpeechStatus(content, options) {
+        if (this.ttsConnector.isMuted) return null;
+        try {
+            return this.speechStatus?.start(content, options) ?? null;
+        } catch (error) {
+            this.logger.warn('Unable to display speech status:', error);
+            return null;
+        }
+    }
+
+    async speak(voiceId, actor, content, settings, status) {
+        try {
+            const itemId = await this.ttsConnector.textToSpeech(voiceId, actor, speechText(content), settings, {
+                onProgress: stage => {
+                    if (stage === 'playing') status?.finish();
+                    else status?.update(stage);
+                }
+            });
+            // Other connectors may not report stages. Their completion still ends the wait.
+            status?.finish(itemId === null ? 'skipped' : 'complete');
+            return itemId;
+        } catch (error) {
+            status?.finish('failed');
+            throw error;
+        }
+    }
+
     async processAndPostMessage(voice_id, speakerActor, postToChat, chatData, messageText, inCharacter, settings, chatlog) {
         const shouldPost = postToChat
             && game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.POST_TO_CHAT);
         const chatContent = `<span class="acd-ta-talked">${messageText}</span>`;
         if (voice_id) {
+            const status = shouldPost ? this.startSpeechStatus(messageText) : null;
             const chatMessagePromise = shouldPost
-                ? this.postToChat(chatData, localize("acd.ta.chat.textTalked"), chatContent, inCharacter)
+                ? this.postToChat(chatData, localize("acd.ta.chat.textTalked"), chatContent, inCharacter, status)
                 : Promise.resolve(null);
             const [chatMessage, itemId] = await Promise.all([
                 chatMessagePromise,
-                this.ttsConnector.textToSpeech(voice_id, speakerActor, speechText(messageText), settings)
+                this.speak(voice_id, speakerActor, messageText, settings, status)
             ]);
             if (chatMessage && itemId) {
                 await this.updateChatMessageFlavor(itemId, chatMessage, { showPlay: true });
@@ -281,7 +316,7 @@ export class ChatProcessor {
         return voice_id;
     }
 
-    postToChat(chatData, flavor, messageText, inCharacter) {
+    postToChat(chatData, flavor, messageText, inCharacter, status = null) {
         // Ensure compatibility to Foundry prior generation 12
         let chatMessageType;
         if (game.data.release.generation < 12) {
@@ -300,6 +335,9 @@ export class ChatProcessor {
             speaker: chatData.speaker,
             content: messageText,
         };
+        if (status) {
+            messageData.flags = { [TalkingActorsConstants.MODULE]: { speechStatus: status.snapshot() } };
+        }
 
         if (game.data.release.generation < 12) {
             messageData.type = chatMessageType;
@@ -308,7 +346,14 @@ export class ChatProcessor {
         {
             messageData.style = chatMessageType;
         }
-        return ChatMessage.create(messageData, { chatBubble: true });
+        const result = ChatMessage.create(messageData, { chatBubble: true });
+        if (status) {
+            return Promise.resolve(result).then(message => {
+                status.attach(message);
+                return message;
+            });
+        }
+        return result;
     }
 
     async updateChatMessageFlavor(itemId, chatMessage, options = {}) {
