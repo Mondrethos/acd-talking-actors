@@ -17,7 +17,8 @@ acd-talking-actors is a FoundryVTT module that brings immersive, AI-powered voic
 - Assign and configure voices for actors using the Voice Settings dialog
 - Use `/talk` chat command to make selected actors speak with their configured or overridden voice
 - Optional integration with [Yendors Scene Actors](https://foundryvtt.com/packages/yendors-scene-actors) and [Conversation Hud](https://foundryvtt.com/packages/conversation-hud)
-- Read-aloud support for FoundryVTT journals, with macro insertion and flexible voice selection
+- A **Post to chat & narrate** button beneath journal read-aloud boxes: one click posts a styled passage to chat and speaks it with the narrator voice
+- Read-aloud support for selected journal text and inline tags, with flexible voice selection
 - Token HUD button for entering and reading aloud custom text
 - Option to suppress posting spoken text to chat
 - API for third-party module integration
@@ -39,6 +40,21 @@ acd-talking-actors is a FoundryVTT module that brings immersive, AI-powered voic
 3. Enable both `acd-talking-actors` and your optional tts connector in your FoundryVTT game settings.
 4. When using elevenlabs as the tts connector, configure your ElevenLabs API key in the module settings.
 5. After updating, have the GM and all players reload Foundry so everyone uses the new audio transport.
+
+
+## Journal narration
+
+Configure a narrator actor and assign its voice. Open a journal and click **Post to
+chat & narrate** beneath a boxed passage to share the full passage as a parchment
+chat card and narrate it to connected players. It supports D&D5e narrative boxes,
+blockquotes, and common imported read-aloud blocks. You do not need to select text.
+The existing journal share controls and selected-text context menu remain available.
+
+This button explicitly posts to chat even if automatic spoken-text posting is
+disabled. Selected-text actions still respect their existing chat settings. The
+button uses only its own passage, omits unrevealed secret/hidden elements, and is
+unavailable inside the journal editor. Replay is available on the resulting chat
+message after speech generation succeeds.
 
 
 ## Credits

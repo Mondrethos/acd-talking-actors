@@ -103,6 +103,9 @@
             "walls": "Limited by Walls",
             "easing": "Adjust Volume",
             "hidden": "Hidden"
+        },
+        "journal": {
+            "postAndNarrate": "Post to chat & narrate"
         }
     }
 }

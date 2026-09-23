@@ -103,6 +103,9 @@
             "walls": "Durch Wände begrenzt",
             "easing": "Lautstärke anpassen",
             "hidden": "Versteckt"
+        },
+        "journal": {
+            "postAndNarrate": "In den Chat senden & vorlesen"
         }
     }
 }
