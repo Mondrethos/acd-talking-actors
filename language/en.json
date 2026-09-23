@@ -105,7 +105,8 @@
             "hidden": "Hidden"
         },
         "journal": {
-            "postAndNarrate": "Post to chat & narrate"
+            "postAndNarrate": "Post to chat & narrate",
+            "noShareControl": "Could not find this passage's existing Send to Chat control. Use the journal's own share button and selected-text narration for this passage."
         }
     }
 }
