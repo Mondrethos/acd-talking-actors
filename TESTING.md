@@ -95,3 +95,31 @@ handler; final formatting and player audio still need the live-world checks abov
 
 The DOM tests cover these interactions with Foundry and TTS services mocked. A
 live-world check is still needed for adventure-specific journal markup and styling.
+
+## Speech status in chat
+
+1. Use **Post to chat & narrate** on a long Ember passage. Expect one unchanged
+   native chat card with a small status line beneath it. Its elapsed seconds should
+   advance while waiting, without the chat card flickering or repeatedly scrolling.
+2. Confirm the stages move from preparing to loading and starting, then disappear
+   when the initiating browser starts playback. Player clients should see status
+   on the same message; their audio may finish buffering a little later.
+3. Start two different passages before the first finishes. Each message should
+   track only its own request, even if audio preparation finishes out of order.
+4. Exercise normal selected-text narration and a silent selected-text action.
+   The former gets a status line; the latter must not create a chat message.
+5. With speech muted, sharing should still work without a lingering waiting bar.
+   A failed speech request should briefly show failure and leave the card intact.
+6. Reopen or pop out the chat log while speech is preparing. Expect one status
+   line per message, no indicator on completed requests, and none on messages
+   whose content the viewing user cannot see.
+7. Enable reduced motion in the browser/OS. The indicator should remain readable
+   without animation. An abandoned status expires after five minutes.
+
+Status tests use Foundry hooks and documents mocked in jsdom. Connector lifecycle
+tests simulate request, stream, playback, and callback failures without spending
+ElevenLabs credits. Elapsed seconds update locally; document flags change only
+with stages. Native card content and flavor are never replaced by the status UI.
+
+API references: [Foundry chat rendering hook](https://foundryvtt.com/api/v14/functions/hookEvents.renderChatMessageHTML.html),
+[ElevenLabs Create speech](https://elevenlabs.io/docs/api-reference/text-to-speech/convert).

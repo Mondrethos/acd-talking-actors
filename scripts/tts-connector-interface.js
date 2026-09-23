@@ -236,9 +236,13 @@ export default class TTSConnectorInterface {
     /**
      * Generate audio from text and play it (or return a handle, depending on implementation).
      * Implementations should set this._speaking true/false accordingly.
-     *
+     * @param {object} [options] - Optional speech observers.
+     * @param {function(string): void|Promise<void>} [options.onProgress] - Receives
+     * preparing, receiving, starting, and playing as those stages begin. Playing means
+     * local playback has started, not that all clients have started or playback has ended.
+     * Observer failures must not affect speech, and muted requests emit no progress.
      */
-    async textToSpeech(voiceId, actor, text, settings) {
+    async textToSpeech(voiceId, actor, text, settings, { onProgress } = {}) {
         throw new Error("textToSpeech must be implemented by subclass");
     }
 
@@ -284,4 +288,3 @@ export default class TTSConnectorInterface {
         // default: no-op
     }
 }
-    

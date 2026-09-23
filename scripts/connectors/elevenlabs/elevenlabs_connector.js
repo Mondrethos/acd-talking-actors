@@ -8,6 +8,15 @@ import * as api from "./api/_api.js";
 import { Mp3Utils } from "../../libs/mp3-utils.js";
 import { GenerateSoundEffectsApp } from "./apps/generate_sound_effects_app.js";
 
+// UI observers must never delay playback or turn a successful request into a failure.
+function notifySafely(callback, ...args) {
+    try {
+        Promise.resolve(callback?.(...args)).catch(() => {});
+    } catch {
+        // Progress is optional; keep speech working if an observer fails.
+    }
+}
+
 export default class ElevenlabsConnector extends TTSConnectorInterface {
 
     availableVoices = [];
@@ -235,55 +244,54 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
         return new api.GetVoiceSettingsRequest(this, voiceId).fetch();
     }
 
-    async textToSpeech(voiceId, actor, text, settings) {
+    async textToSpeech(voiceId, actor, text, settings, { onProgress } = {}) {
         if (this.isMuted) {
             this.logger.info("TTS is muted; skipping text-to-speech.");
             return null;
         }
         
-        if (!this.hasApiKey()) {
-            throw new Error(localize("acd.ta.errors.noApiKey"));
-        }
-
-        // Convert text to speech using the elevenlabs API
-        this.logger.info(`Speaking:`, text,);
-        this._speaking = true;
-
-        // check if voiceId is valid
-        if (voiceId == null || !this.availableVoices.find(v => v.voice_id === voiceId)) {
-            this._speaking = false;
-            throw new Error(localize("acd.ta.errors.voiceUnavailable"));
-        }
-
-        const modelId = this.retrieveModelId(actor);
-        const languageId = this.retrieveLanguageId(actor, modelId);
-
-        let response;
         try {
-            response = await new api.TextToSpeechRequest(this, voiceId, modelId, languageId, text, settings).fetch();
+            if (!this.hasApiKey()) {
+                throw new Error(localize("acd.ta.errors.noApiKey"));
+            }
+
+            // Convert text to speech using the elevenlabs API.
+            this.logger.info(`Speaking:`, text);
+            this._speaking = true;
+
+            if (voiceId == null || !this.availableVoices.find(v => v.voice_id === voiceId)) {
+                throw new Error(localize("acd.ta.errors.voiceUnavailable"));
+            }
+
+            const modelId = this.retrieveModelId(actor);
+            const languageId = this.retrieveLanguageId(actor, modelId);
+            notifySafely(onProgress, "preparing");
+            const response = await new api.TextToSpeechRequest(this, voiceId, modelId, languageId, text, settings).fetch();
 
             if (!response || !response.body || typeof response.body.getReader !== "function") {
                 throw new Error("Invalid stream container received from TextToSpeechRequest.");
             }
+
+            if (response.status !== 200) {
+                this._speaking = false;
+                return null;
+            }
+
+            const historyItemId = response.headers.get("history-item-id");
+            this.logger.debug("TTS history item ID:", historyItemId);
+            notifySafely(onProgress, "receiving");
+            const chunks = await this.readChunks(response);
+
+            notifySafely(onProgress, "starting");
+            await this.broadcastAudio(chunks, {
+                onPlaybackStarted: () => notifySafely(onProgress, "playing")
+            });
+
+            return historyItemId;
         } catch (error) {
             this._speaking = false;
             throw error;
         }
-
-        if (response.status !== 200) {
-            this._speaking = false;
-            return null;
-        }
-
-        let historyItemId = response.headers.get("history-item-id");
-
-        this.logger.debug("TTS history item ID:", historyItemId);
-
-        let chunks = await this.readChunks(response);
-
-        await this.broadcastAudio(chunks);
-
-        return historyItemId;
     }
 
     retrieveLanguageId(actor, modelId) {
@@ -356,11 +364,19 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
         return chunks;
     }
 
-    async broadcastAudio(chunks) {
-        await Promise.all([
-            sendAudio(game.socket, 'module.' + this.mainModule.id, chunks, game.user.id),
-            this.playSound(chunks)
-        ]);
+    async broadcastAudio(chunks, { onPlaybackStarted } = {}) {
+        let failed = false;
+        try {
+            await Promise.all([
+                sendAudio(game.socket, 'module.' + this.mainModule.id, chunks, game.user.id),
+                this.playSound(chunks).then(() => {
+                    if (!failed) notifySafely(onPlaybackStarted);
+                })
+            ]);
+        } catch (error) {
+            failed = true;
+            throw error;
+        }
     }
 
     async playSound(chunks) {
@@ -410,4 +426,3 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
 Hooks.on("acdTalkingActors.registerTtsConnector", (mainModule, logger) => {
     mainModule.registerTtsConnector(new ElevenlabsConnector(mainModule, logger));
 });
-

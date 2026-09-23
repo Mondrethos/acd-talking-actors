@@ -107,6 +107,13 @@
         "journal": {
             "postAndNarrate": "In den Chat senden & vorlesen",
             "noShareControl": "Die vorhandene Chat-Schaltfläche für diesen Abschnitt wurde nicht gefunden. Verwende die Teilen-Schaltfläche des Journals und das Vorlesen von markiertem Text."
+        },
+        "speechStatus": {
+            "preparing": "Sprachausgabe wird vorbereitet",
+            "receiving": "Audio wird geladen",
+            "starting": "Sprachausgabe startet",
+            "failed": "Sprachausgabe fehlgeschlagen",
+            "elapsed": "{seconds}s vergangen"
         }
     }
 }

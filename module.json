@@ -21,7 +21,8 @@
   "styles": [
     "styles/context-menu.min.css",
     "styles/ta-elevenlabs-styles.css",
-    "styles/journal-narration.css"
+    "styles/journal-narration.css",
+    "styles/speech-status.css"
   ],
   "esmodules": [
     "scripts/main.js",
