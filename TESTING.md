@@ -65,19 +65,27 @@ API and socket references:
 
 ## Journal passage button
 
-1. Open a journal with two separate narrative boxes or blockquotes. Confirm each
-   has one **Post to chat & narrate** button below it, including after a re-render.
-2. Without selecting anything, click the first button. Expect one parchment chat
-   card with the entire first passage (paragraphs, emphasis, and links preserved),
-   and narrator speech on the GM and player clients. The second box is not included.
+1. Open a journal with two separate narrative boxes or blockquotes that have native
+   Send to Chat controls. Confirm each has one **Post to chat & narrate** button
+   below it, including after a re-render.
+2. Send the first passage with the journal's original share control, then with
+   **Post to chat & narrate**, without selecting anything. Compare the messages:
+   the content, fonts, textures, header, date format, and native controls should
+   match. Each click produces exactly one native message. Only the narration
+   button speaks, on the GM and player clients. The second box is not included.
 3. Confirm native share controls still work separately, and all four selected-text
    context-menu choices retain their behavior.
 4. Disable automatic chat posting, then use the new button: its explicit post-and-
    narrate action still posts. Silent selected-text choices still do not post.
-5. Confirm unrevealed secret sections and hidden content are not copied into the
-   chat card, and buttons do not appear in the editable journal text.
+5. Confirm narration skips unrevealed secret sections and hidden content, and
+   buttons do not appear in the editable journal text. Chat content follows the
+   journal's existing sharing behavior.
 6. During generation, repeated clicks must not create duplicate messages or API
    calls. After a failed request, the button must re-enable and show the error.
+7. Try DDB Importer passages whose sharing control only appears on hover. With
+   no text selected, the narration button should still invoke that native control.
+8. Try a passage without a native Send to Chat control: expect an explanatory
+   error and no custom chat card or speech. Selected-text narration still works.
 
 The DOM tests cover these interactions with Foundry and TTS services mocked. A
 live-world check is still needed for adventure-specific journal markup and styling.

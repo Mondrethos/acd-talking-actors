@@ -29,23 +29,3 @@ button.acd-ta-journal-narrate:disabled {
     opacity: 0.6;
     cursor: progress;
 }
-
-.acd-ta-narration-card {
-    padding: 0.9rem 1rem;
-    margin-block: 0.35rem;
-    border: 1px solid #9b8057;
-    border-radius: 7px;
-    background: linear-gradient(135deg, #f2e6ce, #e0ceaa);
-    color: #302417;
-    box-shadow: inset 0 0 14px rgb(111 76 36 / 12%);
-    font-family: var(--font-serif, Georgia, serif);
-    font-size: 1rem;
-    line-height: 1.5;
-    overflow-wrap: anywhere;
-}
-
-.acd-ta-narration-card > :first-child { margin-top: 0; }
-.acd-ta-narration-card > :last-child { margin-bottom: 0; }
-.acd-ta-narration-card p { margin-block: 0.65em; }
-.acd-ta-narration-card img { max-width: 100%; height: auto; }
-.acd-ta-narration-card a { color: #684617; }

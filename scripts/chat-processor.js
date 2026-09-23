@@ -176,27 +176,24 @@ export class ChatProcessor {
         return false; //suppress normal chat message posting
     }
 
-    /** Explicit journal action: one formatted chat card plus narrator speech. */
-    async narrateJournalBlock(content) {
+    /** Use the journal's own sharing action and add speech without changing its message. */
+    async narrateJournalBlock(content, shareToChat) {
         const actor = SpeakerResolver.tryGetSpeakerActorForNarratingActor();
         if (!actor) throw new Error(localize("acd.ta.errors.noNarratorConfigured"));
         const voiceId = this.ttsConnector.getVoiceIdFromActor(actor);
         if (!voiceId) throw new Error(localize("acd.ta.errors.noVoiceConfigured"));
         const settings = this.ttsConnector.getVoiceSettingsFromActor(actor);
-        return this.processAndPostMessage(voiceId, actor, true, {
-            user: game.user.id,
-            speaker: { alias: game.user.name, actor: null, token: null }
-        }, content, false, settings, ui.chat, {
-            chatContent: `<div class="acd-ta-narration-card">${content}</div>`,
-            forcePostToChat: true
-        });
+        // Validate the narrator before posting. The journal owns the complete chat
+        // message, including its flavor/date, styles, flags, and speaker.
+        await shareToChat();
+        return this.ttsConnector.textToSpeech(voiceId, actor, speechText(content), settings);
     }
 
     /* helper methods */
-    async processAndPostMessage(voice_id, speakerActor, postToChat, chatData, messageText, inCharacter, settings, chatlog, options = {}) {
-        const shouldPost = postToChat && (options.forcePostToChat
-            || game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.POST_TO_CHAT));
-        const chatContent = options.chatContent ?? `<span class="acd-ta-talked">${messageText}</span>`;
+    async processAndPostMessage(voice_id, speakerActor, postToChat, chatData, messageText, inCharacter, settings, chatlog) {
+        const shouldPost = postToChat
+            && game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.POST_TO_CHAT);
+        const chatContent = `<span class="acd-ta-talked">${messageText}</span>`;
         if (voice_id) {
             const chatMessagePromise = shouldPost
                 ? this.postToChat(chatData, localize("acd.ta.chat.textTalked"), chatContent, inCharacter)
@@ -326,4 +323,3 @@ export class ChatProcessor {
     }
 
 }
-

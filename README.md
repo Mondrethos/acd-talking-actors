@@ -17,7 +17,7 @@ acd-talking-actors is a FoundryVTT module that brings immersive, AI-powered voic
 - Assign and configure voices for actors using the Voice Settings dialog
 - Use `/talk` chat command to make selected actors speak with their configured or overridden voice
 - Optional integration with [Yendors Scene Actors](https://foundryvtt.com/packages/yendors-scene-actors) and [Conversation Hud](https://foundryvtt.com/packages/conversation-hud)
-- A **Post to chat & narrate** button beneath journal read-aloud boxes: one click posts a styled passage to chat and speaks it with the narrator voice
+- A **Post to chat & narrate** button beneath journal read-aloud boxes: one click uses the journal's existing Send to Chat action and speaks the passage with the narrator voice
 - Read-aloud support for selected journal text and inline tags, with flexible voice selection
 - Token HUD button for entering and reading aloud custom text
 - Option to suppress posting spoken text to chat
@@ -45,16 +45,22 @@ acd-talking-actors is a FoundryVTT module that brings immersive, AI-powered voic
 ## Journal narration
 
 Configure a narrator actor and assign its voice. Open a journal and click **Post to
-chat & narrate** beneath a boxed passage to share the full passage as a parchment
-chat card and narrate it to connected players. It supports D&D5e narrative boxes,
-blockquotes, and common imported read-aloud blocks. You do not need to select text.
+chat & narrate** beneath a boxed passage to activate its existing **Send to Chat**
+control and narrate it to connected players. The journal creates its own chat
+message, preserving its original formatting, header, date, and other metadata.
+You do not need to select text.
 The existing journal share controls and selected-text context menu remain available.
 
 This button explicitly posts to chat even if automatic spoken-text posting is
 disabled. Selected-text actions still respect their existing chat settings. The
-button uses only its own passage, omits unrevealed secret/hidden elements, and is
-unavailable inside the journal editor. Replay is available on the resulting chat
-message after speech generation succeeds.
+button recognizes quote-shaped share controls, common Send to Chat actions, and
+DDB Importer's hover controls on narrative boxes, blockquotes, and common imported
+read-aloud blocks. A passage must have an existing sharing control; if none is
+recognized, the button shows an error and you can still use selected-text narration.
+The journal's native sharing action determines what appears in chat. Narration
+reads only the chosen passage and omits unrevealed secret/hidden elements. Buttons
+are unavailable inside the journal editor. Talking Actors leaves the native chat
+message unchanged, including its existing controls.
 
 
 ## Credits

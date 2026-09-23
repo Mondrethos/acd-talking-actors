@@ -105,7 +105,8 @@
             "hidden": "Versteckt"
         },
         "journal": {
-            "postAndNarrate": "In den Chat senden & vorlesen"
+            "postAndNarrate": "In den Chat senden & vorlesen",
+            "noShareControl": "Die vorhandene Chat-Schaltfläche für diesen Abschnitt wurde nicht gefunden. Verwende die Teilen-Schaltfläche des Journals und das Vorlesen von markiertem Text."
         }
     }
 }
