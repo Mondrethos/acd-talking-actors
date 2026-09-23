@@ -87,5 +87,11 @@ API and socket references:
 8. Try a passage without a native Send to Chat control: expect an explanatory
    error and no custom chat card or speech. Selected-text narration still works.
 
+For Ember, test the quote button (`button.readaloud-chat`) inside a
+`.block.readaloud` passage in the exposition section. The regression fixture uses
+the button classes and attributes from the provided Ember DOM screenshot, including
+`data-tooltip="EMBER.ReadaloudSendToChat"`. It verifies dispatch to a mocked native
+handler; final formatting and player audio still need the live-world checks above.
+
 The DOM tests cover these interactions with Foundry and TTS services mocked. A
 live-world check is still needed for adventure-specific journal markup and styling.

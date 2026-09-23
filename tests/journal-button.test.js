@@ -143,6 +143,47 @@ test('original standalone share clicks stay speech-free and match the narrated m
     assert.deepEqual(fixture.updated, []);
 });
 
+test('Ember DOM control delegates sharing once and narrates only its two passage paragraphs', async t => {
+    for (const translated of [false, true]) {
+        await t.test(translated ? 'localized control identified by its stable class' : 'supplied Ember control markup', async t => {
+            const fixture = journalFixture(t, `
+                <section class="journal-page-content"><section class="exposition">
+                    <h2 class="ember-header double" data-anchor="setting-the-scene">Setting the Scene</h2>
+                    <div class="block readaloud" id="ember-passage">
+                        <button type="button" class="readaloud-chat icon ${translated ? 'alternate-symbol' : 'fa-solid fa-message-quote'}" data-tooltip="${translated ? 'An den Chat senden' : 'EMBER.ReadaloudSendToChat'}" aria-label="${translated ? 'An den Chat senden' : 'Send to Chat'}"></button>
+                        <p>A narrow stair winds toward the tower.</p>
+                        <p>Two lanterns glow beside its locked door.</p>
+                    </div>
+                    <div class="block readaloud" id="ember-other"><button type="button" class="readaloud-chat icon fa-solid fa-message-quote" data-tooltip="EMBER.ReadaloudSendToChat" aria-label="Send to Chat"></button><p>A different passage stays unread.</p></div>
+                </section></section>
+            `);
+            const block = document.getElementById('ember-passage');
+            const originalHTML = block.innerHTML;
+            const message = nativeMessage('<section class="ember-journal"><div class="block readaloud"><p>A narrow stair winds toward the tower.</p><p>Two lanterns glow beside its locked door.</p></div></section>');
+            // The screenshot supplies Ember's DOM. Its private share handler is mocked here.
+            const native = bindNativeShare(fixture, block.querySelector('.readaloud-chat'), { delegated: true, message });
+            const other = bindNativeShare(fixture, document.querySelector('#ember-other .readaloud-chat'));
+            fixture.narration.inject(fixture.root);
+            assert.equal(window.getSelection().rangeCount, 0);
+            const button = block.nextElementSibling;
+            assert.ok(button.matches('.acd-ta-journal-narrate'));
+            button.click();
+            await nextTick();
+            assert.equal(native.clicks, 1);
+            assert.equal(other.clicks, 0);
+            assert.deepEqual(fixture.posted, [message]);
+            assert.deepEqual(fixture.updated, []);
+            assert.equal(fixture.spoken.length, 1);
+            assert.deepEqual(fixture.spoken[0].text.split('\n').map(line => line.trim()).filter(Boolean), [
+                'A narrow stair winds toward the tower.',
+                'Two lanterns glow beside its locked door.'
+            ]);
+            assert.equal(block.innerHTML, originalHTML);
+            assert.deepEqual(fixture.notifications, []);
+        });
+    }
+});
+
 test('native sharing controls added after journal rendering are discovered when clicked', async t => {
     const fixture = journalFixture(t, '<blockquote><p>A late share control.</p></blockquote>');
     const block = fixture.root.querySelector('blockquote');

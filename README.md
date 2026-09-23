@@ -53,9 +53,10 @@ The existing journal share controls and selected-text context menu remain availa
 
 This button explicitly posts to chat even if automatic spoken-text posting is
 disabled. Selected-text actions still respect their existing chat settings. The
-button recognizes quote-shaped share controls, common Send to Chat actions, and
-DDB Importer's hover controls on narrative boxes, blockquotes, and common imported
-read-aloud blocks. A passage must have an existing sharing control; if none is
+button recognizes Ember's Send to Chat buttons, quote-shaped share controls, common
+Send to Chat actions, and DDB Importer's hover controls on narrative boxes,
+blockquotes, and common imported read-aloud blocks. A passage must have an existing
+sharing control; if none is
 recognized, the button shows an error and you can still use selected-text narration.
 The journal's native sharing action determines what appears in chat. Narration
 reads only the chosen passage and omits unrevealed secret/hidden elements. Buttons

@@ -4,7 +4,8 @@ import { localize, speechText } from "./libs/functions.js";
 const BLOCK_SELECTOR = 'blockquote, .narrative, .read-aloud, .read-aloud-text, .readaloud, .adventure-read-aloud-text, .ddb-blockquote';
 const UNREADABLE_SELECTOR = '[contenteditable]:not([contenteditable="false"]), .secret:not(.revealed), [hidden]';
 const OMIT_SELECTOR = 'button, .acd-ta-journal-narrate, .journal-header, .ddbimporter-to-chat, .ddbimporter-read-aloud, .secret:not(.revealed), [hidden], script, style';
-const SHARE_SELECTOR = '.ddbimporter-to-chat, [data-action="sendToChat"], [data-action="shareToChat"], [data-action="toChat"], [data-action="postToChat"], [data-action="send-to-chat"], [data-action="share-to-chat"]';
+// Ember's readaloud-chat button is inside its .block.readaloud passage.
+const SHARE_SELECTOR = 'button.readaloud-chat, .ddbimporter-to-chat, [data-action="sendToChat"], [data-action="shareToChat"], [data-action="toChat"], [data-action="postToChat"], [data-action="send-to-chat"], [data-action="share-to-chat"]';
 const QUOTE_ICON_SELECTOR = '.fa-comment-quote, .fa-message-quote, .fa-quote-right, [data-icon="comment-quote"], [data-icon="message-quote"], [data-icon="quote-right"]';
 const CONTROL_SELECTOR = 'button, a, [role="button"], [data-action]';
 
