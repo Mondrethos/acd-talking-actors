@@ -1,3 +1,4 @@
+import { JournalNarration } from "./journal-narration.js";
 import { AudioReceiver } from "./libs/audio-transfer.js";
 /**
  * Entry point class for the acd-talking-actors FoundryVTT module.
@@ -244,6 +245,14 @@ class ACDTalkingActors {
             this.logger.error("No TTS Connector registered! Please check the module installation.");
             ui.notifications.error(`ACD Talking Actors module error: No TTS Connector registered! Please check the module installation.`);
             return;
+        }
+
+        const journalNarration = new JournalNarration(this);
+        for (const hook of [
+            "renderJournalEntrySheet", "renderJournalEntryPageSheet", // v14
+            "renderJournalSheet", "renderJournalPageSheet" // v13
+        ]) {
+            Hooks.on(hook, (_app, html) => journalNarration.inject(html));
         }
 
         this.initializeJournalEntryContextMenu();

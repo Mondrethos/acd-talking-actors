@@ -176,11 +176,30 @@ export class ChatProcessor {
         return false; //suppress normal chat message posting
     }
 
+    /** Explicit journal action: one formatted chat card plus narrator speech. */
+    async narrateJournalBlock(content) {
+        const actor = SpeakerResolver.tryGetSpeakerActorForNarratingActor();
+        if (!actor) throw new Error(localize("acd.ta.errors.noNarratorConfigured"));
+        const voiceId = this.ttsConnector.getVoiceIdFromActor(actor);
+        if (!voiceId) throw new Error(localize("acd.ta.errors.noVoiceConfigured"));
+        const settings = this.ttsConnector.getVoiceSettingsFromActor(actor);
+        return this.processAndPostMessage(voiceId, actor, true, {
+            user: game.user.id,
+            speaker: { alias: game.user.name, actor: null, token: null }
+        }, content, false, settings, ui.chat, {
+            chatContent: `<div class="acd-ta-narration-card">${content}</div>`,
+            forcePostToChat: true
+        });
+    }
+
     /* helper methods */
-    async processAndPostMessage(voice_id, speakerActor, postToChat, chatData, messageText, inCharacter, settings, chatlog) {
+    async processAndPostMessage(voice_id, speakerActor, postToChat, chatData, messageText, inCharacter, settings, chatlog, options = {}) {
+        const shouldPost = postToChat && (options.forcePostToChat
+            || game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.POST_TO_CHAT));
+        const chatContent = options.chatContent ?? `<span class="acd-ta-talked">${messageText}</span>`;
         if (voice_id) {
-            const chatMessagePromise = postToChat && game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.POST_TO_CHAT)
-                ? this.postToChat(chatData, localize("acd.ta.chat.textTalked"), `<span class="acd-ta-talked">${messageText}</span>`, inCharacter)
+            const chatMessagePromise = shouldPost
+                ? this.postToChat(chatData, localize("acd.ta.chat.textTalked"), chatContent, inCharacter)
                 : Promise.resolve(null);
             const [chatMessage, itemId] = await Promise.all([
                 chatMessagePromise,
@@ -189,7 +208,7 @@ export class ChatProcessor {
             if (chatMessage && itemId) {
                 await this.updateChatMessageFlavor(itemId, chatMessage, { showPlay: true });
             }
-        } else if (postToChat && game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.POST_TO_CHAT)) {
+        } else if (shouldPost) {
             await this.postToChat(chatData, "", messageText, inCharacter);
         }
     }

@@ -61,3 +61,23 @@ API and socket references:
 
 - [Socket.IO message limits](https://socket.io/docs/v4/server-options/#maxhttpbuffersize)
 - [Foundry v14 AudioHelper](https://foundryvtt.com/api/classes/foundry.audio.AudioHelper.html)
+
+
+## Journal passage button
+
+1. Open a journal with two separate narrative boxes or blockquotes. Confirm each
+   has one **Post to chat & narrate** button below it, including after a re-render.
+2. Without selecting anything, click the first button. Expect one parchment chat
+   card with the entire first passage (paragraphs, emphasis, and links preserved),
+   and narrator speech on the GM and player clients. The second box is not included.
+3. Confirm native share controls still work separately, and all four selected-text
+   context-menu choices retain their behavior.
+4. Disable automatic chat posting, then use the new button: its explicit post-and-
+   narrate action still posts. Silent selected-text choices still do not post.
+5. Confirm unrevealed secret sections and hidden content are not copied into the
+   chat card, and buttons do not appear in the editable journal text.
+6. During generation, repeated clicks must not create duplicate messages or API
+   calls. After a failed request, the button must re-enable and show the error.
+
+The DOM tests cover these interactions with Foundry and TTS services mocked. A
+live-world check is still needed for adventure-specific journal markup and styling.
