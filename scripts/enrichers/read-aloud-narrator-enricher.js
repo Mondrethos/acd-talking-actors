@@ -7,7 +7,7 @@ import TalkingActorsConstants from "../constants.js";
  *   @Narrate{content}
 
  * The enricher extracts content, resolves the _id of the configured narrating actor, and
- * renders a clickable template that will invoke game.acdTalkingActors.readAloud(content, { narrator, inCharacter: false })
+ * renders a clickable template that will invoke game.acdTalkingActors.readAloudNarrator(content)
  * when clicked.
  */
 
@@ -19,22 +19,17 @@ export class ReadAloudNarratorEnricher {
     }
 
     label = "TA - Talking Actors - Narrate";
-    pattern = /@(?:Narrate)(?:\{([\S\s]+)\})/g;
+    pattern = /@Narrate\{([^}]+)\}/g;
     enricher = async (match, options) => {
-        var content = match[1];
-
-        var onClick = `
-          game.acdTalkingActors.readAloudNarrator(\`${content}\`,{inCharacter: false});
-          `;
-
-        var enricherData = {
-            label: "TA - Talking Actors - Narrate Aloud",
-            click: onClick,
-            content: content,
-        };
-
-        var html = await renderTemplate(TalkingActorsConstants.PATHS.TEMPLATES + 'readaloud-table.hbs', enricherData);
-
+        const narrator = undefined;
+        const html = await foundry.applications.handlebars.renderTemplate(
+            TalkingActorsConstants.PATHS.TEMPLATES + 'readaloud-table.hbs', {
+                label: this.label,
+                mode: "narrator",
+                narrator,
+                content: match[1],
+            }
+        );
         return $(html)[0];
     };
 }

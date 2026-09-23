@@ -5,12 +5,12 @@
             {{label}}
         </th>
         <th width="30px">
-            <a onclick="{{click}}">
+            <a class="acd-ta-read-aloud" role="button" tabindex="0" data-mode="{{mode}}" data-narrator="{{narrator}}" data-content="{{content}}" aria-label="{{label}}">
                 <i class="fas fa-message"></i>
             </a>
         </th>
     </tr>
     <tr>
-        <td colspan="2" id="acd.ta-ReadAloud_content">{{content}}</td>
+        <td colspan="2" class="acd-ta-read-aloud-content">{{content}}</td>
     </tr>
 </table>

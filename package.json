@@ -1,0 +1,16 @@
+{
+  "name": "acd-talking-actors",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "test:socket": "node integration/socket-transfer.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
+  }
+}

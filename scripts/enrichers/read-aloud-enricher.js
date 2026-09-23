@@ -17,23 +17,17 @@ export class ReadAloudEnricher {
     }
 
     label = "TA - Talking Actors - Read Aloud";
-    pattern = /@(?:ReadAloud)(?:\{([\S\s]+)\})/g;
+    pattern = /@ReadAloud\{([^}]+)\}/g;
     enricher = async (match, options) => {
-        var content = match[1];
-
-        var onClick = `
-            game.acdTalkingActors.readAloudCurrentActor(\`${content}\`);
-          `;
-
-        var enricherData = {
-            label: this.label,
-            click: onClick,
-            content: content,
-        };
-
-        var html = await renderTemplate(TalkingActorsConstants.PATHS.TEMPLATES + 'readaloud-table.hbs', enricherData);
-
+        const narrator = undefined;
+        const html = await foundry.applications.handlebars.renderTemplate(
+            TalkingActorsConstants.PATHS.TEMPLATES + 'readaloud-table.hbs', {
+                label: this.label,
+                mode: "current",
+                narrator,
+                content: match[1],
+            }
+        );
         return $(html)[0];
     };
 }
-

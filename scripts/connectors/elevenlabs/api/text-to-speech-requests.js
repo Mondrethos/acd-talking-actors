@@ -29,7 +29,7 @@ export class TextToSpeechRequest extends ElevenlabsRequest {
                     "stability": this.settings.stability,
                     "similarity_boost": this.settings.similarity_boost,
                     "style": this.settings.style,
-                    "use_speaker_boost": "true"
+                    "use_speaker_boost": true
                 }
             });
         }

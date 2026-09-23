@@ -9,7 +9,7 @@ import TalkingActorsConstants from "../constants.js";
  * The enricher extracts the narrator and content, resolves a display name
  * for the narrator (if an actor ID is provided it will attempt to look up
  * the actor's name via game.actors), and renders a clickable template that
- * will invoke game.acdTalkingActors.readAloud(content, { narrator, inCharacter: true })
+ * will invoke game.acdTalkingActors.readAloud(content, true, { narrator })
  * when clicked.
  */
 
@@ -21,29 +21,17 @@ export class ReadAloudActorEnricher {
     }
 
     label = "TA - Talking Actors - Read Aloud Actor";
-    pattern = /@(?:ReadAloud)(?:\[([\S\s]+)\])(?:\{([\S\s]+)\})/g;
+    pattern = /@ReadAloud\[([^\]]+)\]\{([^}]+)\}/g;
     enricher = async (match, options) => {
-        var content = match[2];
-        var narrator = match[1];
-        let narratorForDisplay = narrator;
-        if (narrator.match(/[a-zA-Z0-9]{16}/)) {
-            // the narrator is specified by an Id... get his actor name
-            narratorForDisplay = game.actors.get(narrator)?.name ?? narrator;
-        }
-
-        var onClick = `
-          game.acdTalkingActors.readAloud(\`${content}\`,{narrator: \`${narrator}\`, inCharacter: true});
-          `;
-
-        var enricherData = {
-            label: "TA - Talking Actors - Read Aloud for " + narratorForDisplay,
-            click: onClick,
-            narrator: narrator,
-            content: content,
-        };
-
-        var html = await renderTemplate(TalkingActorsConstants.PATHS.TEMPLATES + 'readaloud-table.hbs', enricherData);
-
+        const narrator = match[1];
+        const html = await foundry.applications.handlebars.renderTemplate(
+            TalkingActorsConstants.PATHS.TEMPLATES + 'readaloud-table.hbs', {
+                label: `TA - Talking Actors - Read Aloud for ${game.actors.get(narrator)?.name ?? narrator}`,
+                mode: "actor",
+                narrator,
+                content: match[2],
+            }
+        );
         return $(html)[0];
     };
 }

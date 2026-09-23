@@ -5,8 +5,9 @@ export class ElevenlabsRequest {
     api_url = 'https://api.elevenlabs.io/v1/';
 
     constructor(connector) {
+        this.logger = connector.logger;
         this.api_key = game.settings.get(connector.mainSettingsId, ELEVENLABS_CONSTANTS.APIKEY);
-        if (this.api_key?.length < 1) {
+        if (!this.api_key) {
             this.api_key = game.settings.get(connector.mainSettingsId, ELEVENLABS_CONSTANTS.MASTERAPIKEY);
         }
     }
@@ -62,10 +63,8 @@ export class ElevenlabsRequest {
     }
 
     checkResponseStatus(response) {
-        if (response.status !== 200 && response.status !== 201) {
-            this.logger.error(`TTS request failed with status ${response.status}, detail: ${response.detail?.message || 'No additional information.'}`);
-            this._speaking = false;
-            return false;
+        if (!response.ok) {
+            throw new Error(`ElevenLabs request failed: HTTP ${response.status} ${response.statusText || ""}`.trim());
         }
         return true;
     }

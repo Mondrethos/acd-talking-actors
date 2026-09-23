@@ -1,3 +1,4 @@
+import { sendAudio } from "../../libs/audio-transfer.js";
 import TTSConnectorInterface from "../../tts-connector-interface.js";
 import { ELEVENLABS_CONSTANTS, ELEVENLABS_FLAGS } from "./constants.js";
 import { VoiceSettingsApp } from "./apps/voice_settings_app.js";
@@ -200,7 +201,7 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
     getVoiceId(voiceName) {
         const voices = this.getAvailableVoices();
         const voice = voices.find(v => v.name === voiceName);
-        return voice ? voice.id : null;
+        return voice ? voice.voice_id : null;
     }
 
     getVoiceIdAndSettingsFromActor(actor) {
@@ -281,14 +282,7 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
 
         let chunks = await this.readChunks(response);
 
-        // Emit audio chunks to socket for playback or further processing
-        game.socket.emit('module.' + this.mainModule.id, {
-            container: chunks,
-            historyItemId: historyItemId,
-            text: text
-        })
-
-        this.playSound(chunks);
+        await this.broadcastAudio(chunks);
 
         return historyItemId;
     }
@@ -363,24 +357,37 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
         return chunks;
     }
 
+    async broadcastAudio(chunks) {
+        await Promise.all([
+            sendAudio(game.socket, 'module.' + this.mainModule.id, chunks, game.user.id),
+            this.playSound(chunks)
+        ]);
+    }
+
     async playSound(chunks) {
-        let blob = new Blob(chunks, { type: 'audio/mpeg' })
-        let url = window.URL.createObjectURL(blob)
-        let sound = this.playAudio(url);
-        let resolvedSound = Promise.resolve(sound);
-        resolvedSound.then((soundInfo) => {
-            console.log(soundInfo);
+        const blob = new Blob(chunks, { type: 'audio/mpeg' });
+        const url = window.URL.createObjectURL(blob);
+        try {
+            const sound = await this.playAudio(url);
+            const cleanup = () => {
+                window.URL.revokeObjectURL(url);
+                this._speaking = false;
+                sound.removeEventListener("end", cleanup);
+                sound.removeEventListener("stop", cleanup);
+            };
+            sound.addEventListener("end", cleanup, { once: true });
+            sound.addEventListener("stop", cleanup, { once: true });
+            return sound;
+        } catch (error) {
+            window.URL.revokeObjectURL(url);
             this._speaking = false;
-            this.logger.info("Finished playing sound.");
-        })
+            throw error;
+        }
     }
 
     async playAudio(url) {
-        if (game.data.release.generation < 12) {
-            return AudioHelper.play({ src: url, volume: 1.0, loop: false }, false);
-        } else {
-            return foundry.audio.AudioHelper.play({ src: url, volume: 1.0, loop: false }, false);
-        }
+        // The instance API resolves once loading and playback have started (v13/v14).
+        return game.audio.play(url);
     }
 
     async playSample(voiceId) {
@@ -395,13 +402,7 @@ export default class ElevenlabsConnector extends TTSConnectorInterface {
         let container = await new api.GetAudioFromHistoryItemRequest(this, itemId).fetch();
 
         let chunks = await this.readChunks(container);
-        game.socket.emit('module.' + this.mainModule.id, {
-            container: chunks,
-            historyItemId: itemId,
-            text: ""
-        })
-
-        this.playSound(chunks);
+        await this.broadcastAudio(chunks);
 
     }
 }

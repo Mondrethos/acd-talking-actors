@@ -37,6 +37,7 @@ export class ChatProcessor {
     static icCommand = "ic";
     static oocCommand = "ooc";
     static narrateCommand = "narrate";
+    static narrateSilentCommand = "narrate-s";
 
     /* constructor */
     constructor(ttsConnector, logger) {
@@ -86,7 +87,7 @@ export class ChatProcessor {
 
         let inCharacter = command == ChatProcessor.icCommand;
 
-        if (command === ChatProcessor.talkSilentCommand) {
+        if (command === ChatProcessor.talkSilentCommand || command === ChatProcessor.narrateSilentCommand) {
             postToChat = false;
         }
 
@@ -102,19 +103,23 @@ export class ChatProcessor {
         let speakerActor;
 
         if (!voice_id) {
-            if (command === ChatProcessor.narrateCommand) {
+            if (command === ChatProcessor.narrateCommand || command === ChatProcessor.narrateSilentCommand) {
                 this.logger.debug("Narrate command detected; resolving narrator actor.");
                 speakerActor = SpeakerResolver.tryGetSpeakerActorForNarratingActor();
-                speakerActor.isNarrator = true;
+                inCharacter = false;
             } else {
-                speakerActor = SpeakerResolver.resolveSpeakerActor(messageVoiceActor,  chatData) ;
+                speakerActor = messageVoiceActor
+                    ? SpeakerResolver.findSpeakerActorById(messageVoiceActor)
+                    : SpeakerResolver.findSpeakerActorByChatData(chatData);
+                inCharacter = !!speakerActor;
+                speakerActor ??= SpeakerResolver.tryGetSpeakerActorForNarratingActor();
             }
         }
 
+        chatData.speaker ??= {};
+
         if (speakerActor) {
             this.logger.info(`Speaking actor: ${speakerActor.name} (${speakerActor._id})`);
-
-            inCharacter = !speakerActor.isNarrator;
 
             voice_id = this.ttsConnector.getVoiceIdFromActor(speakerActor);
             settings = this.ttsConnector.getVoiceSettingsFromActor(speakerActor);
@@ -141,7 +146,7 @@ export class ChatProcessor {
             }
 
 
-            if ( !speakerActor.isNarrator ) {
+            if (inCharacter) {
                 chatData.speaker.actor = speakerActor._id;
                 if (SpeakerResolver.isActorNameRevealed(speakerActor)) {
                     chatData.speaker.alias = speakerActor.name;
@@ -158,7 +163,10 @@ export class ChatProcessor {
     
         this.logger.debug(`Voice ID: ${voice_id}`);
 
-        this.processAndPostMessage(voice_id, speakerActor, postToChat, chatData, messageText, inCharacter, settings, chatlog);
+        this.processAndPostMessage(voice_id, speakerActor, postToChat, chatData, messageText, inCharacter, settings, chatlog).catch(error => {
+            this.logger.error("Speech failed:", error);
+            ui.notifications.error("Talking Actors: speech failed. Check the console for details.");
+        });
 
         return false; //suppress normal chat message posting
     }
@@ -166,24 +174,18 @@ export class ChatProcessor {
     /* helper methods */
     async processAndPostMessage(voice_id, speakerActor, postToChat, chatData, messageText, inCharacter, settings, chatlog) {
         if (voice_id) {
-            let chatMessagePromise;
-
-            if (postToChat && game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.POST_TO_CHAT)) {
-                chatMessagePromise = this.postToChat(chatData, `${localize("acd.ta.chat.textTalked")}`, `<span class="acd-ta-talked">${messageText}</span>`, inCharacter);
-            }
-
-            let speakPromise = this.ttsConnector.textToSpeech(voice_id, speakerActor, messageText, settings);
-
-            if (chatMessagePromise) {
-                let chatMessage = await chatMessagePromise;
-                let itemId = await speakPromise;
-
+            const chatMessagePromise = postToChat && game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.POST_TO_CHAT)
+                ? this.postToChat(chatData, localize("acd.ta.chat.textTalked"), `<span class="acd-ta-talked">${messageText}</span>`, inCharacter)
+                : Promise.resolve(null);
+            const [chatMessage, itemId] = await Promise.all([
+                chatMessagePromise,
+                this.ttsConnector.textToSpeech(voice_id, speakerActor, messageText, settings)
+            ]);
+            if (chatMessage && itemId) {
                 await this.updateChatMessageFlavor(itemId, chatMessage, { showPlay: true });
-                
-                chatlog.updateMessage(chatMessage)
             }
-        } else {
-            this.postToChat(chatData, ``, messageText, inCharacter);
+        } else if (postToChat && game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.POST_TO_CHAT)) {
+            await this.postToChat(chatData, "", messageText, inCharacter);
         }
     }
 
@@ -210,7 +212,7 @@ export class ChatProcessor {
      *          is relevant, or null when the input does not match or is not relevant for read-aloud.
      */
     prepareMessageData(messageText, isAutoInCharacterTalkEnabled) {
-        let messageData = messageText.match(`^\/(.+?)(?:[ ]+\\[(.+?)\\])?(?:[ ]+\\{(.+?)\\})?[ ]+(.*)$`);
+        let messageData = messageText.match(`^\/(.+?)(?:[ ]+\\[(.+?)\\])?(?:[ ]+\\{(.+?)\\})?[ ]+([\\s\\S]*)$`);
 
         if (!this.isMessageReadAloudRelevant(messageData, isAutoInCharacterTalkEnabled)) {
             return null;
@@ -241,6 +243,7 @@ export class ChatProcessor {
             case ChatProcessor.talkCommand:
             case ChatProcessor.talkSilentCommand:
             case ChatProcessor.narrateCommand:
+            case ChatProcessor.narrateSilentCommand:
                 return true;
             case ChatProcessor.icCommand:
                 return isAutoInCharacterTalkEnabled;
@@ -277,7 +280,7 @@ export class ChatProcessor {
             content: messageText,
         };
 
-        if (game.data.release.generation < 14) {
+        if (game.data.release.generation < 12) {
             messageData.type = chatMessageType;
         }
         else

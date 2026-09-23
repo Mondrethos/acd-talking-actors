@@ -1,3 +1,4 @@
+import { AudioReceiver } from "./libs/audio-transfer.js";
 /**
  * Entry point class for the acd-talking-actors FoundryVTT module.
  */
@@ -42,8 +43,16 @@ class ACDTalkingActors {
 
 
         Hooks.once("ready", () => {
-            game.socket.on('module.' + ACDTalkingActors.MODULE_ID, ({ container, historyItemId, text }) => {
-                this.ttsConnector.playSound(container)
+            const receiver = new AudioReceiver();
+            game.socket.on('module.' + ACDTalkingActors.MODULE_ID, async (packet) => {
+                if (!this.ttsConnector || packet?.senderId === game.user.id) return;
+                const chunks = receiver.receive(packet) ?? packet?.container;
+                if (!Array.isArray(chunks)) return;
+                try {
+                    await this.ttsConnector.playSound(chunks);
+                } catch (error) {
+                    this.logger.error("Unable to play received audio:", error);
+                }
             });
 
             this.ready();
@@ -107,7 +116,7 @@ class ACDTalkingActors {
 
         Hooks.on("chatMessage", (chatlog, messageText, chatData) => {
 
-            let chatContent = messageText.match(`^<p>(.+)</p>$`)
+            let chatContent = messageText.match(/^<p>([\s\S]+)<\/p>$/)
             let result = this.chatProcessor.processChatMessage(chatlog, chatContent ? chatContent[1] : messageText, chatData);
             return result;
         });
@@ -116,6 +125,20 @@ class ACDTalkingActors {
 
         $(document).on('click', '.acd-ta-replay', async function () { await that.ttsConnector.replaySpeech($(this).data('item-id')); })
 
+        const activateReadAloud = event => {
+            if (event.type === "keydown" && !["Enter", " "].includes(event.key)) return;
+            const button = event.target.closest?.(".acd-ta-read-aloud");
+            if (!button || !this.isModuleAccessible()) return;
+            event.preventDefault();
+            const { content, mode, narrator } = button.dataset;
+            const action = mode === "actor" ? this.readAloud(content, true, { narrator })
+                : mode === "narrator" ? this.readAloudNarrator(content)
+                : this.readAloudCurrentActor(content);
+            Promise.resolve(action).catch(error => this.logger.error("Read aloud failed:", error));
+        };
+        document.addEventListener("click", activateReadAloud);
+        document.addEventListener("keydown", activateReadAloud);
+
         Hooks.on("getSceneControlButtons", (controls) => this.injectControlToolButtons(controls));
         Hooks.on('renderSettingsConfig', (app, _html) => this.injectSettingsHeaderLabel(app, that));
         Hooks.on('getActorContextOptions', (app, entries) => this.injectActorContextOptions(app, entries));
@@ -123,8 +146,8 @@ class ACDTalkingActors {
         
 
     injectSettingsHeaderLabel(app, that) {
-        const moduleTab = app.form.querySelector('.tab[data-tab=acd-talking-actors]');
-        moduleTab.querySelector('input[name=acd-talking-actors\\.autoInCharacterTalk]').closest('div.form-group').after(this.createTitleNode(`${that.ttsConnector.label} Settings`));
+        const moduleTab = app.form?.querySelector('.tab[data-tab=acd-talking-actors]');
+        moduleTab?.querySelector('input[name=acd-talking-actors\\.autoInCharacterTalk]')?.closest('div.form-group')?.after(this.createTitleNode(`${that.ttsConnector.label} Settings`));
     }
 
     createTitleNode (text) {
@@ -219,7 +242,7 @@ class ACDTalkingActors {
 
         if (!this.ttsConnector) {
             this.logger.error("No TTS Connector registered! Please check the module installation.");
-            ui.errors.show(`ACD Talking Actors module error: No TTS Connector registered! Please check the module installation.`);
+            ui.notifications.error(`ACD Talking Actors module error: No TTS Connector registered! Please check the module installation.`);
             return;
         }
 
@@ -240,10 +263,7 @@ class ACDTalkingActors {
     initializeJournalEntryContextMenu() {
         if (game.settings.get(TalkingActorsConstants.MODULE, TalkingActorsConstants.SETTINGS.ENABLE_SELECTION_CONTEXT_MENU)) {
             document.addEventListener('contextmenu', (ev) => {
-                if (ev.target.classList.contains('journal-entry-pages') ||
-                    $(ev.target).parents('div.journal-entry-pages').length ||
-                    ev.target.classList.contains('editor-content') ||
-                    $(ev.target).parents('div.editor-content').length) {
+                if (this.isModuleAccessible() && ev.target.closest?.('.journal-entry-pages, .journal-page-content, .editor-content')) {
                     this.showContextMenu(ev);
                 }
             });
@@ -407,30 +427,29 @@ class ACDTalkingActors {
 
         content = `/${command} ${content.replace(/\\n/g, '<br>')}`;
 
-        ui.chat.processMessage(content);
+        return ui.chat.processMessage(content);
     }
 
     async readAloudNarrator(content, options = {}) {
         // Implementation for reading aloud content with the current actor's voice
-        let command = "narrate";
+        let command = options.postToChat === false ? "narrate-s" : "narrate";
 
         content = `/${command} ${content.replace(/\\n/g, '<br>')}`;
 
-        ui.chat.processMessage(content);
+        return ui.chat.processMessage(content);
     }
 
     async readAloud(content, postToChat = true, options = {}) {
         // Implementation for reading aloud content with the given actors voice
         let narrator = options.narrator;
         if (!narrator) {
-            this.readAloudNarrator(content, options);
-            return
+            return this.readAloudNarrator(content, { ...options, postToChat });
         }
 
         let command = this.createChatCommand(postToChat);
         content = `/${command} {${narrator}} ${content.replace(/\\n/g, '<br>')}`;
 
-        ui.chat.processMessage(content);
+        return ui.chat.processMessage(content);
     }
 
     async readAloudCallback(html, postToChat) {
@@ -448,6 +467,11 @@ class ACDTalkingActors {
     }
 
     async showContextMenu(event) {
+        const selection = this.getSelectionText();
+        if (!selection || !this.contextMenu) return;
+        event.preventDefault();
+        event.stopPropagation();
+        this.journalSelection = selection;
         const time = this.contextMenu.isOpen() ? 100 : 0;
         this.contextMenu.hide();
         setTimeout(() => {
@@ -463,7 +487,7 @@ class ACDTalkingActors {
                     icon: 'comment',
                     name: game.i18n.localize("acd.ta.controls.readAloud"),
                     action: () => {
-                        const selection = this.getSelectionText();
+                        const selection = this.journalSelection;
                         if (selection)
                             this.readAloud(selection, true);
                         this.contextMenu.hide();
@@ -473,7 +497,7 @@ class ACDTalkingActors {
                     icon: 'comment',
                     name: game.i18n.localize("acd.ta.controls.readAloudWithoutChat"),
                     action: () => {
-                        const selection = this.getSelectionText();
+                        const selection = this.journalSelection;
                         if (selection)
                             this.readAloud(selection, false);
                         this.contextMenu.hide();
@@ -483,7 +507,7 @@ class ACDTalkingActors {
                     icon: 'comment',
                     name: game.i18n.localize("acd.ta.controls.readAloudCurrentActor"),
                     action: () => {
-                        const selection = this.getSelectionText();
+                        const selection = this.journalSelection;
                         if (selection)
                             this.readAloudCurrentActor(selection, true);
                         this.contextMenu.hide();
@@ -493,7 +517,7 @@ class ACDTalkingActors {
                     icon: 'comment',
                     name: game.i18n.localize("acd.ta.controls.readAloudCurrentActorWithoutChat"),
                     action: () => {
-                        const selection = this.getSelectionText();
+                        const selection = this.journalSelection;
                         if (selection)
                             this.readAloudCurrentActor(selection, false);
                         this.contextMenu.hide();
